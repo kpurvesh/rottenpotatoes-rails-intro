@@ -1,5 +1,12 @@
 class MoviesController < ApplicationController
 
+  def initialize
+   super();
+   @all_ratings = Movie.get_all_ratings()
+   @checked_ratings = {}
+   @all_ratings.each {|rating| @checked_ratings[rating] = true }
+  end
+
   def movie_params
     params.require(:movie).permit(:title, :rating, :description, :release_date, :sort)
   end
@@ -11,16 +18,26 @@ class MoviesController < ApplicationController
   end
 
   def index
-    @title_class = "";
-    @release_date_class = "";
-    if params[:sort] == "title"
-	@title_class = "hilite"
-	@movies = Movie.order("title")
-    elsif params[:sort] == "release_date"
-	@release_date_class = "hilite"
-	@movies = Movie.order("release_date")
+    @title_class = ""
+    @release_date_class = ""
+    if params[:ratings] != nil
+	@checked_ratings = {}
+	hash = params[:ratings]
+	list = []
+	hash.each_key { |rating| 
+			@checked_ratings[rating] = true 
+			list.concat(Movie.where(:rating => rating)) }
+	@movies = list
     else
-    	@movies = Movie.all
+    	if params[:sort] == "title"
+		@title_class = "hilite"
+		@movies = Movie.order("title")
+	    elsif params[:sort] == "release_date"
+		@release_date_class = "hilite"
+		@movies = Movie.order("release_date")
+    	else
+    		@movies = Movie.all
+    	end
     end
   end
 
