@@ -20,24 +20,62 @@ class MoviesController < ApplicationController
   def index
     @title_class = ""
     @release_date_class = ""
-    if params[:ratings] != nil
-	@checked_ratings = {}
-	hash = params[:ratings]
-	list = []
-	hash.each_key { |rating| 
-			@checked_ratings[rating] = true 
-			list.concat(Movie.where(:rating => rating)) }
-	@movies = list
+    shld_redirect = false
+    if params[:sort] != nil
+	set_sort_preference(false)
+	session[:sort] = params[:sort]
+    elsif session[:sort] != nil
+	set_sort_preference(true)
+	shld_redirect = true
     else
-    	if params[:sort] == "title"
+	@movies = Movie.all
+    end
+    hash = params[:ratings]
+    if ( hash != nil ) && ( !hash.empty?() )
+	set_ratings_filter(false)
+	session[:ratings] = params[:ratings]
+    elsif session[:ratings] != nil
+	set_ratings_filter(true)
+    end
+    if shld_redirect
+	flash.keep
+	redirect_to movies_path :action => :index, :sort => session[:sort]
+    end
+  end
+
+  def set_ratings_filter (from_session)
+	@checked_ratings = {}
+	hash = {}
+	if from_session
+		hash = session[:ratings]
+	else
+        	hash = params[:ratings]
+	end
+        
+	hash.each_key { |rating|
+                        @checked_ratings[rating] = true }
+        list = []
+        @movies.each { |movie|
+                        if @checked_ratings[movie.rating] == true
+                                list << movie
+                        end
+                     }
+        @movies = list
+  end	
+
+  def set_sort_preference (from_session)
+    sort_type = ""
+    if from_session
+	sort_type = session[:sort]
+    else
+	sort_type = params[:sort]
+    end
+    if sort_type == "title"
 		@title_class = "hilite"
-		@movies = Movie.order("title")
-	    elsif params[:sort] == "release_date"
-		@release_date_class = "hilite"
-		@movies = Movie.order("release_date")
-    	else
-    		@movies = Movie.all
-    	end
+                @movies = Movie.order("title")
+    elsif sort_type == "release_date"
+                @release_date_class = "hilite"
+                @movies = Movie.order("release_date")	
     end
   end
 
